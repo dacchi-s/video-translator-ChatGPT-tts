@@ -230,7 +230,7 @@ class SubtitleAdder(SubtitleProcessor):
         combined_audio.export("combined_tts.mp3", format="mp3")
         self.temp_files.append("combined_tts.mp3")
 
-    def add_subtitles_to_video(self, subs: List[srt.Subtitle]):
+    def add_subtitles_to_video(self, subs: List[srt.Subtitle], audio_mode="replace"):
         logger.info(f"Adding subtitles to video with subtitle space height of {self.subtitle_height} pixels...")
         video = VideoFileClip(self.video_path)
         
@@ -260,10 +260,12 @@ class SubtitleAdder(SubtitleProcessor):
             try:
                 tts_audio = AudioFileClip("combined_tts.mp3")
                 
-                if video.audio:
+                if audio_mode == "mix" and video.audio:
+                    logger.info("Mixing TTS audio with original audio...")
                     tts_audio = tts_audio.volumex(0.7)
                     final_audio = CompositeAudioClip([video.audio, tts_audio])
                 else:
+                    logger.info("Replacing original audio with TTS audio...")
                     final_audio = tts_audio
                     
                 final_video = final_video.set_audio(final_audio)
@@ -402,6 +404,7 @@ def main():
     elif args.action == "add":
         add_subtitles = args.mode in ["subtitles", "both"]
         add_tts = args.mode in ["tts", "both"]
+        
         with SubtitleAdder(
             args.input, 
             args.output_video, 
@@ -410,15 +413,28 @@ def main():
             tts_model=args.tts_model,
             tts_voice=args.tts_voice
         ) as adder:
+            adder.audio_mode = args.audio_mode
+            
             if add_subtitles:
                 adder.run()
-            elif add_tts:
+            else:
                 subs = adder.load_srt(args.input_srt)
                 adder.generate_tts_audio(subs)
                 video = VideoFileClip(args.input)
                 tts_audio = AudioFileClip("combined_tts.mp3")
-                final_video = video.set_audio(tts_audio)
-                final_video.write_videofile(args.output_video, codec=Config.VIDEO_CODEC, audio_codec=Config.AUDIO_CODEC)
+                
+                if args.audio_mode == "mix" and video.audio:
+                    tts_audio = tts_audio.volumex(0.7)
+                    final_audio = CompositeAudioClip([video.audio, tts_audio])
+                else:
+                    final_audio = tts_audio
+                    
+                final_video = video.set_audio(final_audio)
+                final_video.write_videofile(
+                    args.output_video, 
+                    codec=Config.VIDEO_CODEC, 
+                    audio_codec=Config.AUDIO_CODEC
+                )
     elif args.action == "translate":
         translator = SRTTranslator(api_key=Config.OPENAI_API_KEY, model=args.gpt_model, temperature=args.temperature)
         translator.translate_srt(args.input_srt, args.output_srt, args.source_lang, args.target_lang)
