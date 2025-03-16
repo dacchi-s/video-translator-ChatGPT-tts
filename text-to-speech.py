@@ -255,6 +255,22 @@ class SubtitleAdder(SubtitleProcessor):
         final_video = CompositeVideoClip([background, video_clip] + subtitle_clips, size=(original_width, new_height))
         final_video = final_video.set_duration(video.duration)
         
+        if self.add_tts and os.path.exists("combined_tts.mp3"):
+            logger.info("Adding TTS audio to the video...")
+            try:
+                tts_audio = AudioFileClip("combined_tts.mp3")
+                
+                if video.audio:
+                    tts_audio = tts_audio.volumex(0.7)
+                    final_audio = CompositeAudioClip([video.audio, tts_audio])
+                else:
+                    final_audio = tts_audio
+                    
+                final_video = final_video.set_audio(final_audio)
+                logger.info("TTS audio added successfully")
+            except Exception as e:
+                logger.error(f"Error adding TTS audio: {e}")
+        
         logger.info("Rendering final video with subtitles (this may take a while)...")
         final_video.write_videofile(
             self.output_video, 
