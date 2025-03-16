@@ -187,13 +187,15 @@ class SubtitleAdder(SubtitleProcessor):
                  subtitle_height: int = Config.DEFAULT_SUBTITLE_HEIGHT, 
                  add_tts: bool = False,
                  tts_model: str = Config.TTS_MODEL,
-                 tts_voice: str = Config.TTS_VOICE):
+                 tts_voice: str = Config.TTS_VOICE,
+                 audio_mode: str = "replace"):
         super().__init__(video_path, input_srt)
         self.output_video = output_video
         self.subtitle_height = subtitle_height
         self.add_tts = add_tts
         self.tts_model = tts_model
         self.tts_voice = tts_voice
+        self.audio_mode = audio_mode
         self.tts_processor = TTSProcessor(Config.OPENAI_API_KEY, tts_model, tts_voice) if add_tts else None
 
     def run(self):
@@ -260,7 +262,7 @@ class SubtitleAdder(SubtitleProcessor):
             try:
                 tts_audio = AudioFileClip("combined_tts.mp3")
                 
-                if audio_mode == "mix" and video.audio:
+                if self.audio_mode == "mix" and video.audio:
                     logger.info("Mixing TTS audio with original audio...")
                     tts_audio = tts_audio.volumex(0.7)
                     final_audio = CompositeAudioClip([video.audio, tts_audio])
@@ -386,6 +388,8 @@ def main():
                            help="TTS model to use: 'tts-1' (faster) or 'tts-1-hd' (higher quality) (default: tts-1-hd)")
     add_parser.add_argument("--tts_voice", choices=["alloy", "echo", "fable", "onyx", "nova", "shimmer", "coral", "ash", "sage"], 
                            default=Config.TTS_VOICE, help="TTS voice to use (default: echo)")
+    add_parser.add_argument("--audio_mode", choices=["replace", "mix"], default="replace",
+                       help="How to handle TTS audio: 'replace' original audio (default) or 'mix' with it")
 
     # Translate subparser
     translate_parser = subparsers.add_parser("translate")
@@ -411,10 +415,9 @@ def main():
             args.input_srt, 
             add_tts=add_tts,
             tts_model=args.tts_model,
-            tts_voice=args.tts_voice
+            tts_voice=args.tts_voice,
+            audio_mode=args.audio_mode
         ) as adder:
-            adder.audio_mode = args.audio_mode
-            
             if add_subtitles:
                 adder.run()
             else:
