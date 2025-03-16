@@ -173,11 +173,6 @@ The script supports two TTS model options from OpenAI:
 - **`tts-1`** (default): Good for realtime applications with lower latency. May have some static in certain situations.
 - **`tts-1-hd`**: Higher quality audio with better clarity, but slightly slower processing time.
 
-You can set your preferred model in the `.env` file:
-```
-TTS_MODEL=tts-1-hd
-```
-
 ### Available TTS Voices
 
 This script supports these TTS voices from OpenAI:
@@ -192,6 +187,13 @@ This script supports these TTS voices from OpenAI:
 - `sage` - Calming, measured voice
 
 All voices are optimized for English. You can experiment with different voices to find the best match for your desired tone.
+
+### Audio Handling Options
+
+When adding TTS to your video, you can control how the generated voice interacts with the original audio:
+
+- **`replace`** (default): Completely replaces the original audio with the TTS audio
+- **`mix`**: Mixes the TTS audio with the original audio (TTS at 70% volume)
 
 ## Usage Examples
 
@@ -218,6 +220,12 @@ python text-to-speech.py add --input japanese_video.mp4 --output_video video_wit
 
 ```bash
 python text-to-speech.py add --input japanese_video.mp4 --output_video video_with_english_voice.mp4 --input_srt english_subs.srt --mode tts
+```
+
+### 4. Add Voice and Mix with Original Audio
+
+```bash
+python text-to-speech.py add --input japanese_video.mp4 --output_video video_with_mixed_audio.mp4 --input_srt english_subs.srt --mode tts --audio_mode mix
 ```
 
 ## Command Reference
@@ -248,6 +256,7 @@ Options:
 python text-to-speech.py add [-h] --input INPUT --output_video OUTPUT_VIDEO --input_srt INPUT_SRT 
                                [--mode {subtitles,tts,both}] [--tts_model {tts-1,tts-1-hd}] 
                                [--tts_voice {alloy,echo,fable,onyx,nova,shimmer,coral,ash,sage}]
+                               [--audio_mode {replace,mix}]
 
 Options:
   --input INPUT         Input video file path
@@ -263,7 +272,9 @@ Options:
                         TTS model to use: 'tts-1' (faster) or 'tts-1-hd' (higher quality)
                         (default: tts-1-hd)
   --tts_voice {alloy,echo,fable,onyx,nova,shimmer,coral,ash,sage}
-                        TTS voice to use (default: alloy)
+                        TTS voice to use (default: echo)
+  --audio_mode {replace,mix}
+                        How to handle TTS audio: 'replace' original audio (default) or 'mix' with it
 ```
 
 ### Translate Command
@@ -302,6 +313,7 @@ Options:
 - **Natural Voice Synthesis**: High-quality voice generation using OpenAI's TTS
 - **Flexible Output Options**: Generate subtitles only, voice only, or both
 - **Progress Visualization**: Progress bars for long-running processes
+- **Audio Control**: Choose to replace original audio or mix it with the TTS audio
 
 ## File Transfer (Between Docker Container and PC)
 
